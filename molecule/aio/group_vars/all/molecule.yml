@@ -1,5 +1,5 @@
 atmosphere_image_prefix: "{{ lookup('env', 'ATMOSPHERE_IMAGE_PREFIX') | default('', True) }}"
-
+ansible_python_interpreter: /usr/bin/python3
 ceph_version: 18.2.7
 ceph_conf_overrides:
   - section: global
