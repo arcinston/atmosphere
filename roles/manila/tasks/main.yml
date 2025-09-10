@@ -20,6 +20,10 @@
   ansible.builtin.import_tasks:
     file: generate_public_key.yml
 
+- name: Validate dependencies before deployment
+  ansible.builtin.import_tasks:
+    file: validate_dependencies.yml
+
 - name: Deploy Helm chart
   run_once: true
   kubernetes.core.helm:
@@ -29,6 +33,8 @@
     create_namespace: true
     kubeconfig: "{{ manila_helm_kubeconfig }}"
     values: "{{ _manila_helm_values | combine(manila_helm_values, recursive=True) }}"
+    timeout: "20m0s"
+    wait: true
 
 - name: Create Ingress
   ansible.builtin.include_role:

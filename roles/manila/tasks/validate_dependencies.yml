@@ -1,0 +1,79 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Verify OpenVSwitch pods are ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ manila_helm_release_namespace }}"
+    label_selectors:
+      - application=openvswitch
+      - component=server
+  register: _ovs_pods
+  retries: 10
+  delay: 10
+  until:
+    - _ovs_pods.resources | length > 0
+    - _ovs_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+
+- name: Verify required OpenStack services are available
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ manila_helm_release_namespace }}"
+    label_selectors:
+      - "application={{ item }}"
+  register: _openstack_services
+  retries: 5
+  delay: 10
+  until:
+    - _openstack_services.resources | length > 0
+    - _openstack_services.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+  loop:
+    - keystone
+    - mariadb
+    - rabbitmq
+
+- name: Verify database connectivity
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    name: mariadb
+    namespace: "{{ manila_helm_release_namespace }}"
+  register: _mariadb_service
+  retries: 5
+  delay: 5
+  until: _mariadb_service.resources | length > 0
+
+- name: Verify messaging service connectivity
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    name: rabbitmq
+    namespace: "{{ manila_helm_release_namespace }}"
+  register: _rabbitmq_service
+  retries: 5
+  delay: 5
+  until: _rabbitmq_service.resources | length > 0
+
+- name: Verify identity service connectivity
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    name: keystone-api
+    namespace: "{{ manila_helm_release_namespace }}"
+  register: _keystone_service
+  retries: 5
+  delay: 5
+  until: _keystone_service.resources | length > 0

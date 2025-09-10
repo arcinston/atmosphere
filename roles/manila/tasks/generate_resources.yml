@@ -24,6 +24,15 @@
     extra_specs: "{{ manila_flavor_extra_specs }}"
   register: _manila_flavor
 
+- name: Verify flavor creation
+  openstack.cloud.compute_flavor_info:
+    cloud: atmosphere
+    name: "{{ manila_flavor_name }}"
+  register: _manila_flavor_verify
+  retries: 5
+  delay: 10
+  until: _manila_flavor_verify.flavors | length > 0
+
 - name: Upload service image
   ansible.builtin.include_role:
     name: glance_image
@@ -39,6 +48,16 @@
     name: manila-service-security-group
     project: service
   register: _manila_service_security_group
+
+- name: Verify security group creation
+  openstack.cloud.security_group_info:
+    cloud: atmosphere
+    name: manila-service-security-group
+    project: service
+  register: _manila_security_group_verify
+  retries: 5
+  delay: 5
+  until: _manila_security_group_verify.security_groups | length > 0
 
 - name: Create generic share driver security group tcp rules
   openstack.cloud.security_group_rule:
@@ -63,3 +82,14 @@
     ethertype: IPv4
     protocol: icmp
     project: service
+
+- name: Verify image upload completion
+  openstack.cloud.image_info:
+    cloud: atmosphere
+    image: "{{ manila_image_name }}"
+  register: _manila_image_verify
+  retries: 10
+  delay: 30
+  until:
+    - _manila_image_verify.images | length > 0
+    - _manila_image_verify.images[0].status == 'active'

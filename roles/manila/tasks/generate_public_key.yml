@@ -59,3 +59,14 @@
       data:
         id_rsa: "{{ manila_ssh_key | b64encode }}"
         id_rsa.pub: "{{ _manila_ssh_publickey.public_key | b64encode }}"
+
+- name: Wait for SSH keys secret to be available
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ manila_helm_release_name }}-ssh-keys"
+    namespace: "{{ manila_helm_release_namespace }}"
+  register: _ssh_secret_check
+  retries: 10
+  delay: 5
+  until: _ssh_secret_check.resources | length > 0
