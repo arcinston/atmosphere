@@ -57,7 +57,7 @@
   register: _manila_security_group_verify
   retries: 5
   delay: 5
-  until: _manila_security_group_verify.security_groups | length > 0
+  until: _manila_security_group_verify.security_group is defined
 
 - name: Create generic share driver security group tcp rules
   openstack.cloud.security_group_rule:
